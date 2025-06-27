@@ -66,7 +66,8 @@ RAM (xrw)      : ORIGIN = 0x24000000, LENGTH = 512K
 RAM_D2 (xrw)      : ORIGIN = 0x30000000, LENGTH = 288K
 RAM_D3 (xrw)      : ORIGIN = 0x38000000, LENGTH = 64K
 ITCMRAM (xrw)      : ORIGIN = 0x00000000, LENGTH = 64K
-FLASH (rx)      : ORIGIN = 0x8000000, LENGTH = 128K
+/* FLASH (rx)      : ORIGIN = 0x8000000, LENGTH = 128K */
+FLASH(rx)   : ORIGIN = 0x90000000, LENGTH = 8M
 }
 
 /* Define output sections */
@@ -196,7 +197,21 @@ SECTIONS
     . = ALIGN(8);
   } >DTCMRAM
 
+  .ram_d3 (NOLOAD) : 
+  {
+    . = ALIGN(4);
+    *(.ram_d3)
+    *(.ram_d3*)
+    . = ALIGN(4);
+  } >RAM_D3
 
+  .axi_ram (NOLOAD) :
+  {
+    . = ALIGN(4);
+    *(.axi_ram)
+    *(.axi_ram*)
+    . = ALIGN(4);
+  } >RAM
 
   /* Remove information from the standard libraries */
   /DISCARD/ :

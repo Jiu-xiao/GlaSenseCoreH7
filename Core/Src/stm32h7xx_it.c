@@ -51,6 +51,14 @@
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+/* LibXR USB Tx Cplt callback (Auto-generated, For STM32F1) */
+#if defined(STM32F1) && defined(HAL_PCD_MODULE_ENABLED)
+extern void STM32_USB_ISR_Handler_F1(void);
+#endif
+/* LibXR UART IDLE callback (Auto-generated) */
+#ifdef HAL_UART_MODULE_ENABLED
+extern void STM32_UART_ISR_Handler_IDLE(UART_HandleTypeDef *huart);
+#endif
 
 /* USER CODE END 0 */
 

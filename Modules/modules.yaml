@@ -1,0 +1,6 @@
+# XRobot modules.yaml template. Each line: full module name (namespace/ModuleName[@ref]):
+# Example:
+#   - xrobot-org/BlinkLED
+#   - your-namespace/YourModule@dev
+modules:
+  - xrobot-org/BlinkLED

@@ -1,0 +1,141 @@
+GPIO:
+  PE11:
+    Label: LCD_CS
+    Signal: GPIO_Output
+  PE3:
+    Label: LED
+    Signal: GPIO_Output
+Peripherals:
+  TIM:
+    TIM1:
+      Period: 1000-1
+      Prescaler: 24-1
+      Channels:
+        CH2:
+          Label: TIM1
+          PWM: true
+          DutyCycle: null
+  ADC: {}
+  SPI:
+    SPI4:
+      BaudRate: 15.0 MBits/s
+      Direction: SPI_DIRECTION_2LINES
+      dma:
+        dma_rx: &id003
+          request_id: '2'
+          peripheral: SPI4_RX
+          dma_type: DMA
+          stream: DMA1_Stream2
+          direction: MEMORY
+          periph_inc: false
+          mem_inc: false
+          periph_align: byte
+          mem_align: byte
+          mode: Normal
+          priority: Low
+          fifo: Disabled
+        dma_tx: &id004
+          request_id: '3'
+          peripheral: SPI4_TX
+          dma_type: DMA
+          stream: DMA1_Stream3
+          direction: PERIPH
+          periph_inc: false
+          mem_inc: false
+          periph_align: byte
+          mem_align: byte
+          mode: Normal
+          priority: Low
+          fifo: Disabled
+      DMA_RX: ENABLE
+      DMA_RX_TYPE: DMA
+      DMA_TX: ENABLE
+      DMA_TX_TYPE: DMA
+  I2C:
+    I2C1:
+      AddressingMode: 7-bit
+      DualAddressMode: false
+      NoStretchMode: false
+      dma:
+        dma_rx: &id001
+          request_id: '0'
+          peripheral: I2C1_RX
+          dma_type: DMA
+          stream: DMA1_Stream0
+          direction: MEMORY
+          periph_inc: false
+          mem_inc: false
+          periph_align: byte
+          mem_align: byte
+          mode: Normal
+          priority: Low
+          fifo: Disabled
+        dma_tx: &id002
+          request_id: '1'
+          peripheral: I2C1_TX
+          dma_type: DMA
+          stream: DMA1_Stream1
+          direction: PERIPH
+          periph_inc: false
+          mem_inc: false
+          periph_align: byte
+          mem_align: byte
+          mode: Normal
+          priority: Low
+          fifo: Disabled
+      DMA_RX: ENABLE
+      DMA_RX_TYPE: DMA
+      DMA_TX: ENABLE
+      DMA_TX_TYPE: DMA
+  USB:
+    USB_DEVICE:
+      VBus: false
+    USB_OTG_FS:
+      VBus: false
+  USART: {}
+DMA:
+  Requests:
+    '0': I2C1_RX
+    '1': I2C1_TX
+    '2': SPI4_RX
+    '3': SPI4_TX
+    '4': DCMI
+    sNb: '5'
+  Configurations:
+    DCMI_4:
+      request_id: '4'
+      peripheral: DCMI
+      dma_type: DMA
+      stream: DMA1_Stream4
+      direction: MEMORY
+      periph_inc: false
+      mem_inc: false
+      periph_align: word
+      mem_align: word
+      mode: Normal
+      priority: Low
+      fifo: Disabled
+    I2C1_RX_0: *id001
+    I2C1_TX_1: *id002
+    SPI4_RX_2: *id003
+    SPI4_TX_3: *id004
+Timebase:
+  Source: TIM17
+  IRQ: TIM17_IRQn
+Mcu:
+  Family: STM32H7
+  Type: STM32H750VBT6
+FreeRTOS:
+  RTOS: FreeRTOS
+  Enabled: false
+  AllocationMethod: null
+  MemPoolSize: null
+  CorePresent: null
+  Tasks:
+    defaultTask:
+      Priority: '24'
+      StackSize: 3192B
+      EntryFunction: StartDefaultTask
+      Type: Default
+  Heap: null
+  Features: []

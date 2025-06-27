@@ -1,0 +1,74 @@
+terminal_source: usb
+software_timer:
+  priority: 2
+  stack_depth: 1024
+SPI:
+  spi4:
+    tx_buffer_size: 32
+    rx_buffer_size: 32
+    dma_section: null
+    dma_enable_min_size: 3
+I2C:
+  i2c1:
+    buffer_size: 32
+    dma_section: .axi_ram
+    dma_enable_min_size: 3
+USB:
+  tx_queue_size: 5
+Terminal:
+  READ_BUFF_SIZE: 32
+  MAX_LINE_SIZE: 32
+  MAX_ARG_NUMBER: 5
+  MAX_HISTORY_NUMBER: 5
+  RunAsThread: true
+  ThreadStackDepth: 1024
+  ThreadPriority: 3
+SYSTEM: FreeRTOS
+Watchdog:
+  RunAsThread: false
+  FeedInterval: 250
+device_aliases:
+  power_manager:
+    type: PowerManager
+    aliases:
+    - power_manager
+  LCD_CS:
+    type: GPIO
+    aliases:
+    - LCD_CS
+  LED:
+    type: GPIO
+    aliases:
+    - LED
+  pwm_tim1_ch2:
+    type: PWM
+    aliases:
+    - pwm_tim1_ch2
+  spi4:
+    type: SPI
+    aliases:
+    - spi4
+  i2c1:
+    type: I2C
+    aliases:
+    - i2c1
+  uart_cdc:
+    type: UART
+    aliases:
+    - uart_cdc
+  ramfs:
+    type: RamFS
+    aliases:
+    - ramfs
+  terminal:
+    type: Terminal<32, 32, 5, 5>
+    aliases:
+    - terminal
+FlashLayout:
+  model: STM32H750VBT6
+  flash_base: '0x08000000'
+  flash_size_kb: 128
+  sectors:
+  - index: 0
+    address: '0x08000000'
+    size_kb: 128.0
