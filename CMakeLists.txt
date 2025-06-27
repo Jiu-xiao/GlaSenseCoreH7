@@ -71,6 +71,21 @@ target_link_libraries(${PROJECT_NAME}
 # Add LibXR
 include(${CMAKE_CURRENT_LIST_DIR}/cmake/LibXR.CMake)
 
+file(
+  GLOB ${PROJECT_NAME}_CAMERA_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/Camera/*.c")
+
+file(
+  GLOB ${PROJECT_NAME}_ST7735_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/ST7735/*.c")
+
+target_sources(xr
+  PRIVATE ${${PROJECT_NAME}_CAMERA_SOURCES}
+  PRIVATE ${${PROJECT_NAME}_ST7735_SOURCES})
+
+target_include_directories(
+  xr
+  PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Camera
+  PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/ST7735)
+
 include(${CMAKE_CURRENT_LIST_DIR}/Modules/CMakeLists.txt)
 
 # Prints the section sizes

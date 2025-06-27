@@ -4,3 +4,6 @@ modules:
 - name: BlinkLED
   constructor_args:
     blink_cycle: 250
+- id: SensUS_0
+  name: SensUS
+  constructor_args: {}

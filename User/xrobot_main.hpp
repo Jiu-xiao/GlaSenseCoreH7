@@ -3,6 +3,7 @@
 
 // Module headers
 #include "BlinkLED.hpp"
+#include "SensUS.hpp"
 
 static void XRobotMain(LibXR::HardwareContainer &hw) {
   using namespace LibXR;
@@ -10,6 +11,7 @@ static void XRobotMain(LibXR::HardwareContainer &hw) {
 
   // Auto-generated module instantiations
   static BlinkLED blinkled(hw, appmgr, 250);
+  static SensUS SensUS_0(hw, appmgr);
 
   while (true) {
     appmgr.MonitorAll();
