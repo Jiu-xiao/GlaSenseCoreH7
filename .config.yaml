@@ -1,6 +1,12 @@
 GPIO:
+  PC13:
+    Pull: GPIO_PULLDOWN
+    Signal: GPIO_Input
   PE11:
     Label: LCD_CS
+    Signal: GPIO_Output
+  PE13:
+    Label: LCD_WR_RS
     Signal: GPIO_Output
   PE3:
     Label: LED
@@ -15,14 +21,17 @@ Peripherals:
           Label: TIM1
           PWM: true
           DutyCycle: null
+    TIM16:
+      Period: 100-1
+      Prescaler: 240-1
   ADC: {}
   SPI:
     SPI4:
-      BaudRate: 15.0 MBits/s
-      Direction: SPI_DIRECTION_2LINES
+      BaudRate: 30.0 MBits/s
+      Direction: SPI_DIRECTION_1LINE
       dma:
         dma_rx: &id003
-          request_id: '2'
+          request_id: '4'
           peripheral: SPI4_RX
           dma_type: DMA
           stream: DMA1_Stream2
@@ -35,7 +44,7 @@ Peripherals:
           priority: Low
           fifo: Disabled
         dma_tx: &id004
-          request_id: '3'
+          request_id: '2'
           peripheral: SPI4_TX
           dma_type: DMA
           stream: DMA1_Stream3
@@ -61,7 +70,7 @@ Peripherals:
           request_id: '0'
           peripheral: I2C1_RX
           dma_type: DMA
-          stream: DMA1_Stream0
+          stream: DMA1_Stream4
           direction: MEMORY
           periph_inc: false
           mem_inc: false
@@ -97,28 +106,28 @@ DMA:
   Requests:
     '0': I2C1_RX
     '1': I2C1_TX
-    '2': SPI4_RX
-    '3': SPI4_TX
-    '4': DCMI
+    '2': SPI4_TX
+    '3': DCMI
+    '4': SPI4_RX
     sNb: '5'
   Configurations:
-    DCMI_4:
-      request_id: '4'
+    DCMI_3:
+      request_id: '3'
       peripheral: DCMI
       dma_type: DMA
-      stream: DMA1_Stream4
+      stream: DMA1_Stream0
       direction: MEMORY
       periph_inc: false
       mem_inc: false
       periph_align: word
       mem_align: word
-      mode: Normal
+      mode: Circular
       priority: Low
       fifo: Disabled
     I2C1_RX_0: *id001
     I2C1_TX_1: *id002
-    SPI4_RX_2: *id003
-    SPI4_TX_3: *id004
+    SPI4_RX_4: *id003
+    SPI4_TX_2: *id004
 Timebase:
   Source: TIM17
   IRQ: TIM17_IRQn

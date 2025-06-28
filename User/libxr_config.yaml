@@ -4,9 +4,9 @@ software_timer:
   stack_depth: 1024
 SPI:
   spi4:
-    tx_buffer_size: 32
-    rx_buffer_size: 32
-    dma_section: null
+    tx_buffer_size: 51200
+    rx_buffer_size: 51200
+    dma_section: .axi_ram
     dma_enable_min_size: 3
 I2C:
   i2c1:
@@ -36,6 +36,7 @@ device_aliases:
     type: GPIO
     aliases:
     - LCD_CS
+    - st7735_spi_cs
   LED:
     type: GPIO
     aliases:
@@ -44,10 +45,12 @@ device_aliases:
     type: PWM
     aliases:
     - pwm_tim1_ch2
+    - st7735_pwm
   spi4:
     type: SPI
     aliases:
     - spi4
+    - st7735_spi
   i2c1:
     type: I2C
     aliases:
@@ -64,6 +67,15 @@ device_aliases:
     type: Terminal<32, 32, 5, 5>
     aliases:
     - terminal
+  PC13:
+    type: GPIO
+    aliases:
+    - PC13
+  LCD_WR_RS:
+    type: GPIO
+    aliases:
+    - LCD_WR_RS
+    - st7735_spi_rs
 FlashLayout:
   model: STM32H750VBT6
   flash_base: '0x08000000'

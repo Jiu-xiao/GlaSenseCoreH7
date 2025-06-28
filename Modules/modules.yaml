@@ -4,3 +4,4 @@
 #   - your-namespace/YourModule@dev
 modules:
   - xrobot-org/BlinkLED
+  - xrobot-org/ST7735

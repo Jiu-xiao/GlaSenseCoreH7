@@ -205,7 +205,7 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
-extern void LCD_SoftPWMCtrlRun(void);
+
 /* USER CODE END 4 */
 
 /**
@@ -226,10 +226,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     HAL_IncTick();
   }
   /* USER CODE BEGIN Callback 1 */
-  if (htim->Instance == TIM16)
-	{
-		LCD_SoftPWMCtrlRun();
-	} 
+
   /* USER CODE END Callback 1 */
 }
 

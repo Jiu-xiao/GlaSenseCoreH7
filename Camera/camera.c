@@ -153,11 +153,6 @@ void Camera_Reset(Camera_HandleTypeDef *hov)
 
 void Camera_XCLK_Set(uint8_t xclktype)
 {
-#define USE_LCD 1
-
-#if USE_LCD
-#include "lcd.h"
-#endif
 	if (xclktype == XCLK_TIM)
 	{
 		TIM_OC_InitTypeDef sConfigOC = {0};
@@ -201,29 +196,12 @@ void Camera_XCLK_Set(uint8_t xclktype)
 		HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
 		HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
-
-#if USE_LCD
-		// Init 0.96''LCD Light Timer
-		LCD_SoftPWMCtrlInit();
-#endif
 	}
 	else
 	{
-#if USE_LCD
-		// DeInit 0.96''LCD Light Timer
-		LCD_SoftPWMCtrlDeInit();
-#endif
-
 		// DeInit TIM1 PWM OutPut
 		HAL_GPIO_DeInit(GPIOA, GPIO_PIN_8);
 		HAL_TIM_PWM_DeInit(&htim1);
-
-#if USE_LCD
-		// Init TIM1 Channel 2N 10Khz PWM Output
-		MX_TIM1_Init();
-		LCD_SoftPWMEnable(0);
-		HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_2);
-#endif
 
 		// Init MCO1 PA8 12Mhz Output
 		HAL_RCC_MCOConfig(RCC_MCO1, RCC_MCO1SOURCE_HSI48, RCC_MCODIV_4);
