@@ -69,6 +69,8 @@ target_link_libraries(${PROJECT_NAME}
 )
 
 # Add LibXR
+target_link_options(${PROJECT_NAME} PRIVATE -u _printf_float)
+
 include(${CMAKE_CURRENT_LIST_DIR}/cmake/LibXR.CMake)
 
 file(

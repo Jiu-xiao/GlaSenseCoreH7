@@ -6,12 +6,12 @@ SPI:
   spi4:
     tx_buffer_size: 51200
     rx_buffer_size: 51200
-    dma_section: .axi_ram
+    dma_section: .ram_d3
     dma_enable_min_size: 3
 I2C:
   i2c1:
     buffer_size: 32
-    dma_section: .axi_ram
+    dma_section: .ram_d3
     dma_enable_min_size: 3
 USB:
   tx_queue_size: 5
@@ -24,27 +24,33 @@ Terminal:
   ThreadStackDepth: 1024
   ThreadPriority: 3
 SYSTEM: FreeRTOS
-Watchdog:
-  RunAsThread: false
-  FeedInterval: 250
 device_aliases:
   power_manager:
     type: PowerManager
     aliases:
     - power_manager
+  PC13:
+    type: GPIO
+    aliases:
+    - PC13
   LCD_CS:
     type: GPIO
     aliases:
     - LCD_CS
     - st7735_spi_cs
+  LCD_WR_RS:
+    type: GPIO
+    aliases:
+    - LCD_WR_RS
+    - st7735_spi_rs
   LED:
     type: GPIO
     aliases:
     - LED
-  pwm_tim1_ch2:
+  pwm_tim1_ch2n:
     type: PWM
     aliases:
-    - pwm_tim1_ch2
+    - pwm_tim1_ch2n
     - st7735_pwm
   spi4:
     type: SPI
@@ -67,15 +73,6 @@ device_aliases:
     type: Terminal<32, 32, 5, 5>
     aliases:
     - terminal
-  PC13:
-    type: GPIO
-    aliases:
-    - PC13
-  LCD_WR_RS:
-    type: GPIO
-    aliases:
-    - LCD_WR_RS
-    - st7735_spi_rs
 FlashLayout:
   model: STM32H750VBT6
   flash_base: '0x08000000'

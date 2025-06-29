@@ -18,6 +18,7 @@ depends:
 #include "libxr_time.hpp"
 #include "semaphore.hpp"
 #include "thread.hpp"
+#include "timebase.hpp"
 #include <cstdint>
 
 extern "C" {
@@ -51,11 +52,11 @@ public:
       FrameSize::NUMBER)] = {FRAMESIZE_QQVGA, FRAMESIZE_QVGA, FRAMESIZE_VGA,
                              FRAMESIZE_SVGA,  FRAMESIZE_XGA,  FRAMESIZE_SXGA};
 
-  static constexpr uint16_t QQVGA_WIDTH = 160;
-  static constexpr uint16_t QQVGA_HEIGHT = 120;
+  static constexpr uint16_t DISPLAY_WIDTH = 160;
+  static constexpr uint16_t DISPLAY_HEIGHT = 80;
 
-  static constexpr uint16_t FrameWidth = RESOLUTIONS[FrameSizeIndex][0];
-  static constexpr uint16_t FrameHeight = RESOLUTIONS[FrameSizeIndex][1];
+  static constexpr uint16_t FRAME_WIDTH = RESOLUTIONS[FrameSizeIndex][0];
+  static constexpr uint16_t FRAME_HEIGHT = RESOLUTIONS[FrameSizeIndex][1];
 
   SensUS(LibXR::HardwareContainer &hw, LibXR::ApplicationManager &app,
          ST7735 &st7735_)
@@ -69,28 +70,40 @@ public:
   }
 
   static void ThreadFun(SensUS *self) {
-    char text[20];
+    static char text[1024];
     Camera_Init_Device(&hi2c1, CAMERA_FRAMESIZE_MAP[FrameSizeIndex]);
-
-    HAL_DCMI_Start_DMA(&hdcmi, DCMI_MODE_CONTINUOUS, (uint32_t)&picture_buffer_,
-                       FrameWidth * FrameHeight * 2 / 4);
+    HAL_DCMI_Start_DMA(&hdcmi, DCMI_MODE_SNAPSHOT,
+                       (uint32_t)picture_buffer_raw_[self->buffer_index_],
+                       FRAME_WIDTH * FRAME_HEIGHT * 2 / 4);
     while (1) {
       if (self->frame_ready_.Wait() == ErrorCode::OK) {
-        SCB_InvalidateDCache_by_Addr(picture_buffer_, sizeof(picture_buffer_));
+        SCB_InvalidateDCache_by_Addr(picture_buffer_raw_[self->buffer_index_],
+                                     sizeof(picture_buffer_raw_[0]));
+        self->MakeAreaToGray();
+        static LibXR::TimestampMS last_frame_time = 0;
+        if (LibXR::Timebase::GetMilliseconds() - last_frame_time >= 40) {
+          last_frame_time = LibXR::Timebase::GetMilliseconds();
+        } else {
+          continue;
+        }
 #if 1
-        ScaleImage(reinterpret_cast<uint16_t *>(picture_buffer_), FrameWidth,
-                   FrameHeight, self->display_buffer_, QQVGA_WIDTH,
-                   QQVGA_HEIGHT);
+        ScaleImage(reinterpret_cast<uint16_t *>(
+                       picture_buffer_raw_[self->buffer_index_]),
+                   FRAME_WIDTH, FRAME_HEIGHT, self->display_buffer_,
+                   DISPLAY_WIDTH, DISPLAY_HEIGHT);
 #else
-        CropToQQVGA(reinterpret_cast<uint16_t *>(picture_buffer_), FrameWidth,
-                    FrameHeight, self->display_buffer_);
+        CropToQQVGA(reinterpret_cast<uint16_t *>(
+                        picture_buffer_raw_[self->buffer_index_]),
+                    FrameWidth, FrameHeight, self->display_buffer_);
 #endif
+        self->MarkArea();
         self->st7735_->FillRGBRect(
             0, 0, reinterpret_cast<uint8_t *>(self->display_buffer_),
             self->st7735_->GetWidth(), self->st7735_->GetHeight());
-        sprintf((char *)&text, "%dFPS", self->fps_);
-        self->st7735_->ShowString(ST7735::Color::BLACK, ST7735::Color::WHITE, 5,
-                                  5, 60, 16, 12, text);
+        sprintf((char *)&text, "%dFPS R%3.4f D%3.4f", self->fps_,
+                self->ref_average_light_, self->det_average_light_);
+        self->st7735_->ShowString(ST7735::Color::BLACK, ST7735::Color::WHITE, 2,
+                                  0, self->st7735_->GetWidth(), 16, 12, text);
       }
     }
   }
@@ -102,11 +115,25 @@ private:
   ST7735 *st7735_ = nullptr;
 
   uint32_t fps_ = 0;
+  float reference_area_start_x_ = 0.2f;
+  float reference_area_start_y_ = 0.3f;
+  float reference_area_end_x_ = 0.4f;
+  float reference_area_end_y_ = 0.7f;
 
-  uint16_t display_buffer_[QQVGA_WIDTH * QQVGA_HEIGHT];
+  float detection_area_start_x_ = 0.6f;
+  float detection_area_start_y_ = 0.3f;
+  float detection_area_end_x_ = 0.8f;
+  float detection_area_end_y_ = 0.7f;
+
+  double ref_average_light_ = 0;
+  double det_average_light_ = 0;
+
+  uint16_t display_buffer_[DISPLAY_WIDTH * DISPLAY_HEIGHT];
+
+  uint8_t buffer_index_ = false;
 
   __attribute__((section(".axi_ram"))) inline static uint16_t
-      picture_buffer_[FrameWidth * FrameHeight];
+      picture_buffer_raw_[2][FRAME_WIDTH * FRAME_HEIGHT];
 
   LibXR::Semaphore frame_ready_;
 
@@ -122,6 +149,16 @@ private:
       count = 0;
     }
     count++;
+
+    if (picture_buffer_raw_[self_->buffer_index_] == picture_buffer_raw_[0]) {
+      HAL_DCMI_Start_DMA(&hdcmi, DCMI_MODE_SNAPSHOT,
+                         (uint32_t)picture_buffer_raw_[0],
+                         FRAME_WIDTH * FRAME_HEIGHT * 2 / 4);
+    } else {
+      HAL_DCMI_Start_DMA(&hdcmi, DCMI_MODE_SNAPSHOT,
+                         (uint32_t)picture_buffer_raw_[1],
+                         FRAME_WIDTH * FRAME_HEIGHT * 2 / 4);
+    }
 
     SensUS::self_->frame_ready_.PostFromCallback(true);
   }
@@ -144,13 +181,107 @@ private:
   static void CropToQQVGA(const uint16_t *src, uint16_t src_width,
                           uint16_t src_height, uint16_t *dst) {
     // 居中裁剪窗口起点
-    uint16_t offset_x = (src_width - QQVGA_WIDTH) / 2;
-    uint16_t offset_y = (src_height - QQVGA_HEIGHT) / 2;
+    uint16_t offset_x = (src_width - DISPLAY_WIDTH) / 2;
+    uint16_t offset_y = (src_height - DISPLAY_HEIGHT) / 2;
 
-    for (uint16_t y = 0; y < QQVGA_HEIGHT; ++y) {
+    for (uint16_t y = 0; y < DISPLAY_HEIGHT; ++y) {
       const uint16_t *src_row = &src[(offset_y + y) * src_width + offset_x];
-      uint16_t *dst_row = &dst[y * QQVGA_WIDTH];
-      memcpy(dst_row, src_row, QQVGA_WIDTH * sizeof(uint16_t));
+      uint16_t *dst_row = &dst[y * DISPLAY_WIDTH];
+      memcpy(dst_row, src_row, DISPLAY_WIDTH * sizeof(uint16_t));
+    }
+  }
+
+  inline uint16_t RGB565ToGray(uint16_t rgb565, uint8_t &gray) {
+    rgb565 = (rgb565 >> 8) | (rgb565 << 8);
+    uint8_t r8 = ((rgb565 >> 11) & 0x1F) << 3;
+    uint8_t g8 = ((rgb565 >> 5) & 0x3F) << 2;
+    uint8_t b8 = (rgb565 & 0x1F) << 3;
+    gray = (uint8_t)((r8 * 299 + g8 * 587 + b8 * 114) / 1000);
+    auto ans = ((gray >> 3) << 11) | ((gray >> 2) << 5) | (gray >> 3);
+    return (ans << 8) | (ans >> 8);
+  }
+
+  void MakeAreaToGray() {
+    uint16_t ref_start_x =
+        static_cast<uint16_t>(reference_area_start_x_ * FRAME_WIDTH);
+    uint16_t ref_start_y =
+        static_cast<uint16_t>(reference_area_start_y_ * FRAME_HEIGHT);
+    uint16_t ref_end_x =
+        static_cast<uint16_t>(reference_area_end_x_ * FRAME_WIDTH);
+    uint16_t ref_end_y =
+        static_cast<uint16_t>(reference_area_end_y_ * FRAME_HEIGHT);
+    uint64_t gray_sum = 0;
+    uint8_t gray = 0;
+    for (uint16_t y = ref_start_y; y < ref_end_y; ++y) {
+      uint16_t *src_row = &picture_buffer_raw_[buffer_index_][y * FRAME_WIDTH];
+      for (uint16_t x = ref_start_x; x < ref_end_x; ++x) {
+        src_row[x] = RGB565ToGray(src_row[x], gray);
+        gray_sum += gray;
+      }
+    }
+
+    ref_average_light_ = static_cast<double>(gray_sum) /
+                         (ref_end_x - ref_start_x) / (ref_end_y - ref_start_y);
+
+    gray_sum = 0;
+
+    uint16_t det_start_x =
+        static_cast<uint16_t>(detection_area_start_x_ * FRAME_WIDTH);
+    uint16_t det_start_y =
+        static_cast<uint16_t>(detection_area_start_y_ * FRAME_HEIGHT);
+    uint16_t det_end_x =
+        static_cast<uint16_t>(detection_area_end_x_ * FRAME_WIDTH);
+    uint16_t det_end_y =
+        static_cast<uint16_t>(detection_area_end_y_ * FRAME_HEIGHT);
+    for (uint16_t y = det_start_y; y < det_end_y; ++y) {
+      uint16_t *src_row = &picture_buffer_raw_[buffer_index_][y * FRAME_WIDTH];
+      for (uint16_t x = det_start_x; x < det_end_x; ++x) {
+        src_row[x] = RGB565ToGray(src_row[x], gray);
+        gray_sum += gray;
+      }
+    }
+
+    det_average_light_ = static_cast<double>(gray_sum) /
+                         (det_end_x - det_start_x) / (det_end_y - det_start_y);
+  }
+
+  void MarkArea() {
+    uint16_t ref_start_x =
+        static_cast<uint16_t>(reference_area_start_x_ * DISPLAY_WIDTH);
+    uint16_t ref_start_y =
+        static_cast<uint16_t>(reference_area_start_y_ * DISPLAY_HEIGHT);
+    uint16_t ref_end_x =
+        static_cast<uint16_t>(reference_area_end_x_ * DISPLAY_WIDTH);
+    uint16_t ref_end_y =
+        static_cast<uint16_t>(reference_area_end_y_ * DISPLAY_HEIGHT);
+
+    for (uint16_t y = ref_start_y; y < ref_end_y; ++y) {
+      uint16_t *dst_row = &display_buffer_[y * DISPLAY_WIDTH];
+      for (uint16_t x = ref_start_x; x < ref_end_x; ++x) {
+        if (y == ref_start_y || y == ref_end_y - 1 || x == ref_start_x ||
+            x == ref_end_x - 1) {
+          dst_row[x] = ST7735::Color::RED;
+        }
+      }
+    }
+
+    uint16_t det_start_x =
+        static_cast<uint16_t>(detection_area_start_x_ * DISPLAY_WIDTH);
+    uint16_t det_start_y =
+        static_cast<uint16_t>(detection_area_start_y_ * DISPLAY_HEIGHT);
+    uint16_t det_end_x =
+        static_cast<uint16_t>(detection_area_end_x_ * DISPLAY_WIDTH);
+    uint16_t det_end_y =
+        static_cast<uint16_t>(detection_area_end_y_ * DISPLAY_HEIGHT);
+
+    for (uint16_t y = det_start_y; y < det_end_y; ++y) {
+      uint16_t *dst_row = &display_buffer_[y * DISPLAY_WIDTH];
+      for (uint16_t x = det_start_x; x < det_end_x; ++x) {
+        if (y == det_start_y || y == det_end_y - 1 || x == det_start_x ||
+            x == det_end_x - 1) {
+          dst_row[x] = ST7735::Color::GREEN;
+        }
+      }
     }
   }
 };

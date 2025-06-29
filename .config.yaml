@@ -17,9 +17,10 @@ Peripherals:
       Period: 1000-1
       Prescaler: 24-1
       Channels:
-        CH2:
+        CH2N:
           Label: TIM1
           PWM: true
+          Complementary: true
           DutyCycle: null
     TIM16:
       Period: 100-1
@@ -30,20 +31,7 @@ Peripherals:
       BaudRate: 30.0 MBits/s
       Direction: SPI_DIRECTION_1LINE
       dma:
-        dma_rx: &id003
-          request_id: '4'
-          peripheral: SPI4_RX
-          dma_type: DMA
-          stream: DMA1_Stream2
-          direction: MEMORY
-          periph_inc: false
-          mem_inc: false
-          periph_align: byte
-          mem_align: byte
-          mode: Normal
-          priority: Low
-          fifo: Disabled
-        dma_tx: &id004
+        dma_tx: &id003
           request_id: '2'
           peripheral: SPI4_TX
           dma_type: DMA
@@ -56,8 +44,6 @@ Peripherals:
           mode: Normal
           priority: Low
           fifo: Disabled
-      DMA_RX: ENABLE
-      DMA_RX_TYPE: DMA
       DMA_TX: ENABLE
       DMA_TX_TYPE: DMA
   I2C:
@@ -108,8 +94,7 @@ DMA:
     '1': I2C1_TX
     '2': SPI4_TX
     '3': DCMI
-    '4': SPI4_RX
-    sNb: '5'
+    sNb: '4'
   Configurations:
     DCMI_3:
       request_id: '3'
@@ -126,8 +111,7 @@ DMA:
       fifo: Disabled
     I2C1_RX_0: *id001
     I2C1_TX_1: *id002
-    SPI4_RX_4: *id003
-    SPI4_TX_2: *id004
+    SPI4_TX_2: *id003
 Timebase:
   Source: TIM17
   IRQ: TIM17_IRQn

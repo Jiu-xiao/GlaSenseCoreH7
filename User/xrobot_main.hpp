@@ -5,7 +5,6 @@
 #include "BlinkLED.hpp"
 #include "SensUS.hpp"
 #include "ST7735.hpp"
-#include "TestModule.hpp"
 
 static void XRobotMain(LibXR::HardwareContainer &hw) {
   using namespace LibXR;
