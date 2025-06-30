@@ -80,7 +80,7 @@ public:
         SCB_InvalidateDCache_by_Addr(picture_buffer_raw_[self->buffer_index_],
                                      sizeof(picture_buffer_raw_[0]));
         self->MakeAreaToGray();
-        static LibXR::TimestampMS last_frame_time = 0;
+        static LibXR::MillisecondTimestamp last_frame_time = 0;
         if (LibXR::Timebase::GetMilliseconds() - last_frame_time >= 40) {
           last_frame_time = LibXR::Timebase::GetMilliseconds();
         } else {
@@ -104,6 +104,8 @@ public:
                 self->ref_average_light_, self->det_average_light_);
         self->st7735_->ShowString(ST7735::Color::BLACK, ST7735::Color::WHITE, 2,
                                   0, self->st7735_->GetWidth(), 16, 12, text);
+        LibXR::STDIO::Printf("%f,%f\n", self->ref_average_light_,
+                             self->det_average_light_);
       }
     }
   }
@@ -140,7 +142,7 @@ private:
   LibXR::Thread thread_;
 
   static void CameraReadyCallback() {
-    static LibXR::TimestampMS tick = 0;
+    static LibXR::MillisecondTimestamp tick = 0;
     static uint32_t count = 0;
 
     if (LibXR::Timebase::GetMilliseconds() - tick >= 1000) {

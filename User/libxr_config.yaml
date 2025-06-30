@@ -16,13 +16,13 @@ I2C:
 USB:
   tx_queue_size: 5
 Terminal:
-  READ_BUFF_SIZE: 32
-  MAX_LINE_SIZE: 32
-  MAX_ARG_NUMBER: 5
-  MAX_HISTORY_NUMBER: 5
-  RunAsThread: true
-  ThreadStackDepth: 1024
-  ThreadPriority: 3
+  read_buff_size: 32
+  max_line_size: 32
+  max_arg_number: 5
+  max_history_number: 5
+  run_as_thread: true
+  thread_stack_depth: 1024
+  thread_priority: 3
 SYSTEM: FreeRTOS
 device_aliases:
   power_manager:
