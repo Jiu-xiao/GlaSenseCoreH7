@@ -6,12 +6,17 @@ SPI:
   spi4:
     tx_buffer_size: 51200
     rx_buffer_size: 51200
-    dma_section: .ram_d3
+    dma_section: .axi_ram
+    dma_enable_min_size: 3
+  spi1:
+    tx_buffer_size: 1024
+    rx_buffer_size: 1024
+    dma_section: .axi_ram
     dma_enable_min_size: 3
 I2C:
   i2c1:
     buffer_size: 32
-    dma_section: .ram_d3
+    dma_section: .axi_ram
     dma_enable_min_size: 3
 USB:
   tx_queue_size: 5
@@ -73,6 +78,16 @@ device_aliases:
     type: Terminal<32, 32, 5, 5>
     aliases:
     - terminal
+  SPI1_CS:
+    type: GPIO
+    aliases:
+    - SPI1_CS
+    - spi_w25qxx_cs
+  spi1:
+    type: SPI
+    aliases:
+    - spi1
+    - spi_w25qxx
 FlashLayout:
   model: STM32H750VBT6
   flash_base: '0x08000000'

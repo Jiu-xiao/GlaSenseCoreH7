@@ -17,3 +17,8 @@ modules:
     screen: '@ST7735_0'
   template_args:
     FrameSizeIndex: 1
+- id: W25QXX_0
+  name: W25QXX
+  constructor_args: {}
+  template_args:
+    buffer_size: 128

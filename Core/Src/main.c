@@ -118,6 +118,7 @@ int main(void)
   MX_TIM1_Init();
   MX_DCMI_Init();
   MX_TIM16_Init();
+  MX_SPI1_Init();
   /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */

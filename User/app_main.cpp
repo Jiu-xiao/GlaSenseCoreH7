@@ -25,6 +25,7 @@ using namespace LibXR;
 /* User Code End 1 */
 /* External HAL Declarations */
 extern I2C_HandleTypeDef hi2c1;
+extern SPI_HandleTypeDef hspi1;
 extern SPI_HandleTypeDef hspi4;
 extern TIM_HandleTypeDef htim16;
 extern TIM_HandleTypeDef htim17;
@@ -34,8 +35,10 @@ extern uint8_t UserRxBufferFS[APP_RX_DATA_SIZE];
 extern uint8_t UserTxBufferFS[APP_TX_DATA_SIZE];
 
 /* DMA Resources */
-static uint8_t spi4_tx_buf[51200] __attribute__((section(".ram_d3")));
-static uint8_t i2c1_buf[32] __attribute__((section(".ram_d3")));
+static uint8_t spi1_tx_buf[1024] __attribute__((section(".axi_ram")));
+static uint8_t spi1_rx_buf[1024] __attribute__((section(".axi_ram")));
+static uint8_t spi4_tx_buf[51200] __attribute__((section(".axi_ram")));
+static uint8_t i2c1_buf[32] __attribute__((section(".axi_ram")));
 
 extern "C" void app_main(void) {
   /* User Code Begin 2 */
@@ -47,12 +50,15 @@ extern "C" void app_main(void) {
 
   /* GPIO Configuration */
   STM32GPIO PC13(GPIOC, GPIO_PIN_13);
+  STM32GPIO SPI1_CS(SPI1_CS_GPIO_Port, SPI1_CS_Pin);
   STM32GPIO LCD_CS(LCD_CS_GPIO_Port, LCD_CS_Pin);
   STM32GPIO LCD_WR_RS(LCD_WR_RS_GPIO_Port, LCD_WR_RS_Pin);
   STM32GPIO LED(LED_GPIO_Port, LED_Pin);
 
 
   STM32PWM pwm_tim1_ch2n(&htim1, TIM_CHANNEL_2, true);
+
+  STM32SPI spi1(&hspi1, spi1_rx_buf, spi1_tx_buf, 3);
 
   STM32SPI spi4(&hspi4, {nullptr, 0}, spi4_tx_buf, 3);
 
@@ -79,7 +85,9 @@ extern "C" void app_main(void) {
     LibXR::Entry<LibXR::I2C>({i2c1, {"i2c1"}}),
     LibXR::Entry<LibXR::UART>({uart_cdc, {"uart_cdc"}}),
     LibXR::Entry<LibXR::RamFS>({ramfs, {"ramfs"}}),
-    LibXR::Entry<LibXR::Terminal<32, 32, 5, 5>>({terminal, {"terminal"}})
+    LibXR::Entry<LibXR::Terminal<32, 32, 5, 5>>({terminal, {"terminal"}}),
+    LibXR::Entry<LibXR::GPIO>({SPI1_CS, {"SPI1_CS", "spi_w25qxx_cs"}}),
+    LibXR::Entry<LibXR::SPI>({spi1, {"spi1", "spi_w25qxx"}})
   };
 
   /* User Code Begin 3 */

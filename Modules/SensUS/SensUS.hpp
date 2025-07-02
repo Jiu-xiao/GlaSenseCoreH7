@@ -66,7 +66,7 @@ public:
     self_ = this;
     dcmi_callback_fun = CameraReadyCallback;
     thread_.Create(this, ThreadFun, "SensUS", 4096,
-                   LibXR::Thread::Priority::REALTIME);
+                   LibXR::Thread::Priority::LOW);
   }
 
   static void ThreadFun(SensUS *self) {
