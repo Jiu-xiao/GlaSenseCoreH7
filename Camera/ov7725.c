@@ -143,6 +143,21 @@ static int ov7725_set_vflip(int enable)
     return ret;
 }
 
+int ov7725_disable_auto() {
+  uint8_t reg;
+  int ret = ov7725_RD_Reg(COM8, &reg);
+
+  // 清除AGC/AEC/AWB相关bit，关闭自动增益、自动曝光、自动白平衡
+  reg &= ~(COM8_AEC_EN | COM8_AWB_EN | COM8_AGC_EN);
+
+  // 写回
+  ret |= ov7725_WR_Reg(COM8, reg);
+
+  return ret;
+}
+
+
+
 int ov7725_init(framesize_t framesize)
 {
 	ov7725_reset();
@@ -152,7 +167,8 @@ int ov7725_init(framesize_t framesize)
 	ov7725_set_framesize(hcamera.framesize);
 	ov7725_set_hmirror(1);
 	ov7725_set_vflip(1);
-	
+
+	ov7725_disable_auto();
+
 	return 1;
 }
-

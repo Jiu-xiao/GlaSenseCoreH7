@@ -5,6 +5,7 @@
 #include "stm32_adc.hpp"
 #include "stm32_can.hpp"
 #include "stm32_canfd.hpp"
+#include "stm32_dac.hpp"
 #include "stm32_gpio.hpp"
 #include "stm32_i2c.hpp"
 #include "stm32_power.hpp"
@@ -76,18 +77,18 @@ extern "C" void app_main(void) {
 
   LibXR::HardwareContainer peripherals{
     LibXR::Entry<LibXR::PowerManager>({power_manager, {"power_manager"}}),
-    LibXR::Entry<LibXR::GPIO>({PC13, {"PC13"}}),
+    LibXR::Entry<LibXR::GPIO>({PC13, {"PC13", "user_key"}}),
+    LibXR::Entry<LibXR::GPIO>({SPI1_CS, {"SPI1_CS"}}),
     LibXR::Entry<LibXR::GPIO>({LCD_CS, {"LCD_CS", "st7735_spi_cs"}}),
     LibXR::Entry<LibXR::GPIO>({LCD_WR_RS, {"LCD_WR_RS", "st7735_spi_rs"}}),
     LibXR::Entry<LibXR::GPIO>({LED, {"LED"}}),
     LibXR::Entry<LibXR::PWM>({pwm_tim1_ch2n, {"pwm_tim1_ch2n", "st7735_pwm"}}),
+    LibXR::Entry<LibXR::SPI>({spi1, {"spi1"}}),
     LibXR::Entry<LibXR::SPI>({spi4, {"spi4", "st7735_spi"}}),
     LibXR::Entry<LibXR::I2C>({i2c1, {"i2c1"}}),
     LibXR::Entry<LibXR::UART>({uart_cdc, {"uart_cdc"}}),
     LibXR::Entry<LibXR::RamFS>({ramfs, {"ramfs"}}),
-    LibXR::Entry<LibXR::Terminal<32, 32, 5, 5>>({terminal, {"terminal"}}),
-    LibXR::Entry<LibXR::GPIO>({SPI1_CS, {"SPI1_CS", "spi_w25qxx_cs"}}),
-    LibXR::Entry<LibXR::SPI>({spi1, {"spi1", "spi_w25qxx"}})
+    LibXR::Entry<LibXR::Terminal<32, 32, 5, 5>>({terminal, {"terminal"}})
   };
 
   /* User Code Begin 3 */

@@ -29,6 +29,14 @@ Terminal:
   thread_stack_depth: 1024
   thread_priority: 3
 SYSTEM: FreeRTOS
+FlashLayout:
+  model: STM32H750VBT6
+  flash_base: '0x08000000'
+  flash_size_kb: 128
+  sectors:
+  - index: 0
+    address: '0x08000000'
+    size_kb: 128.0
 device_aliases:
   power_manager:
     type: PowerManager
@@ -38,6 +46,11 @@ device_aliases:
     type: GPIO
     aliases:
     - PC13
+    - user_key
+  SPI1_CS:
+    type: GPIO
+    aliases:
+    - SPI1_CS
   LCD_CS:
     type: GPIO
     aliases:
@@ -57,6 +70,10 @@ device_aliases:
     aliases:
     - pwm_tim1_ch2n
     - st7735_pwm
+  spi1:
+    type: SPI
+    aliases:
+    - spi1
   spi4:
     type: SPI
     aliases:
@@ -78,21 +95,3 @@ device_aliases:
     type: Terminal<32, 32, 5, 5>
     aliases:
     - terminal
-  SPI1_CS:
-    type: GPIO
-    aliases:
-    - SPI1_CS
-    - spi_w25qxx_cs
-  spi1:
-    type: SPI
-    aliases:
-    - spi1
-    - spi_w25qxx
-FlashLayout:
-  model: STM32H750VBT6
-  flash_base: '0x08000000'
-  flash_size_kb: 128
-  sectors:
-  - index: 0
-    address: '0x08000000'
-    size_kb: 128.0

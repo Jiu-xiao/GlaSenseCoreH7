@@ -13,13 +13,14 @@ depends:
 === END MANIFEST === */
 // clang-format on
 
+#include <cstdint>
+
 #include "ST7735.hpp"
 #include "app_framework.hpp"
 #include "libxr_time.hpp"
 #include "semaphore.hpp"
 #include "thread.hpp"
 #include "timebase.hpp"
-#include <cstdint>
 
 extern "C" {
 #include "camera.h"
@@ -32,8 +33,9 @@ extern I2C_HandleTypeDef hi2c1;
 
 static void (*dcmi_callback_fun)() = nullptr;
 
-template <int FrameSizeIndex> class SensUS : public LibXR::Application {
-public:
+template <int FrameSizeIndex>
+class SensUS : public LibXR::Application {
+ public:
   enum class FrameSize : uint8_t {
     QQVGA = 0,
     QVGA = 1,
@@ -58,14 +60,17 @@ public:
   static constexpr uint16_t FRAME_WIDTH = RESOLUTIONS[FrameSizeIndex][0];
   static constexpr uint16_t FRAME_HEIGHT = RESOLUTIONS[FrameSizeIndex][1];
 
+  LibXR::GPIO *user_key_ = nullptr;
+
   SensUS(LibXR::HardwareContainer &hw, LibXR::ApplicationManager &app,
          ST7735 &st7735_)
-      : st7735_(&st7735_) {
+      : st7735_(&st7735_), queue_(sizeof(double) * 2, DISPLAY_WIDTH) {
     UNUSED(app);
     UNUSED(hw);
     self_ = this;
+    user_key_ = hw.FindOrExit<LibXR::GPIO>({"user_key"});
     dcmi_callback_fun = CameraReadyCallback;
-    thread_.Create(this, ThreadFun, "SensUS", 4096,
+    thread_.Create(this, ThreadFun, "SensUS", 12000,
                    LibXR::Thread::Priority::LOW);
   }
 
@@ -75,44 +80,133 @@ public:
     HAL_DCMI_Start_DMA(&hdcmi, DCMI_MODE_SNAPSHOT,
                        (uint32_t)picture_buffer_raw_[self->buffer_index_],
                        FRAME_WIDTH * FRAME_HEIGHT * 2 / 4);
+    bool show_image = false;
     while (1) {
       if (self->frame_ready_.Wait() == ErrorCode::OK) {
+        static auto last_key_press_time = LibXR::Timebase::GetMilliseconds();
+        if (self->user_key_->Read() == 1 &&
+            LibXR::Timebase::GetMilliseconds() - last_key_press_time >= 300) {
+          show_image = !show_image;
+          last_key_press_time = LibXR::Timebase::GetMilliseconds();
+        }
         SCB_InvalidateDCache_by_Addr(picture_buffer_raw_[self->buffer_index_],
                                      sizeof(picture_buffer_raw_[0]));
         self->MakeAreaToGray();
-        static LibXR::MillisecondTimestamp last_frame_time = 0;
-        if (LibXR::Timebase::GetMilliseconds() - last_frame_time >= 40) {
-          last_frame_time = LibXR::Timebase::GetMilliseconds();
-        } else {
-          continue;
+        if (self_->queue_.EmptySize() == 0) {
+          self_->queue_.Pop();
         }
+
+        double tmp[2] = {self_->ref_average_light_, self_->det_average_light_};
+
+        self_->queue_.Push(tmp);
+
+        if (show_image) {
+          static LibXR::MillisecondTimestamp last_frame_time = 0;
+          if (LibXR::Timebase::GetMilliseconds() - last_frame_time >= 40) {
+            last_frame_time = LibXR::Timebase::GetMilliseconds();
+          } else {
+            continue;
+          }
 #if 1
-        ScaleImage(reinterpret_cast<uint16_t *>(
-                       picture_buffer_raw_[self->buffer_index_]),
-                   FRAME_WIDTH, FRAME_HEIGHT, self->display_buffer_,
-                   DISPLAY_WIDTH, DISPLAY_HEIGHT);
+          ScaleImage(reinterpret_cast<uint16_t *>(
+                         picture_buffer_raw_[self->buffer_index_]),
+                     FRAME_WIDTH, FRAME_HEIGHT, self->display_buffer_,
+                     DISPLAY_WIDTH, DISPLAY_HEIGHT);
 #else
-        CropToQQVGA(reinterpret_cast<uint16_t *>(
-                        picture_buffer_raw_[self->buffer_index_]),
-                    FrameWidth, FrameHeight, self->display_buffer_);
+          CropToQQVGA(reinterpret_cast<uint16_t *>(
+                          picture_buffer_raw_[self->buffer_index_]),
+                      FrameWidth, FrameHeight, self->display_buffer_);
 #endif
-        self->MarkArea();
-        self->st7735_->FillRGBRect(
-            0, 0, reinterpret_cast<uint8_t *>(self->display_buffer_),
-            self->st7735_->GetWidth(), self->st7735_->GetHeight());
-        sprintf((char *)&text, "%dFPS R%3.4f D%3.4f", self->fps_,
-                self->ref_average_light_, self->det_average_light_);
-        self->st7735_->ShowString(ST7735::Color::BLACK, ST7735::Color::WHITE, 2,
-                                  0, self->st7735_->GetWidth(), 16, 12, text);
-        LibXR::STDIO::Printf("%f,%f\n", self->ref_average_light_,
-                             self->det_average_light_);
+          self->MarkArea();
+          self->st7735_->FillRGBRect(
+              0, 0, reinterpret_cast<uint8_t *>(self->display_buffer_),
+              self->st7735_->GetWidth(), self->st7735_->GetHeight());
+          sprintf((char *)&text, "%dFPS R%3.4f D%3.4f", self->fps_,
+                  self->ref_average_light_, self->det_average_light_);
+          self->st7735_->ShowString(ST7735::Color::BLACK, ST7735::Color::WHITE,
+                                    2, 0, self->st7735_->GetWidth(), 16, 12,
+                                    text);
+          LibXR::STDIO::Printf("%f,%f\n", self->ref_average_light_,
+                               self->det_average_light_);
+        } else {
+          if (self->queue_.EmptySize() > 0) {
+            continue;
+          }
+
+          static LibXR::MillisecondTimestamp last_frame_time = 0;
+          if (LibXR::Timebase::GetMilliseconds() - last_frame_time >= 40) {
+            last_frame_time = LibXR::Timebase::GetMilliseconds();
+          } else {
+            continue;
+          }
+          self->DrawChart();
+          self->st7735_->FillRGBRect(
+              0, 0, reinterpret_cast<uint8_t *>(self->chart_buffer_),
+              self->st7735_->GetWidth(), self->st7735_->GetHeight());
+          sprintf((char *)&text, "%dFPS R%3.4f D%3.4f", self->fps_,
+                  self->ref_average_light_, self->det_average_light_);
+          self->st7735_->ShowString(ST7735::Color::BLACK, ST7735::Color::WHITE,
+                                    2, 0, self->st7735_->GetWidth(), 16, 12,
+                                    text);
+        }
+      }
+    }
+  }
+
+  void DrawChart() {
+    for (uint32_t i = 0; i < DISPLAY_WIDTH * DISPLAY_HEIGHT; ++i)
+      chart_buffer_[i] = ST7735::Color::WHITE;
+
+    if (queue_.Size() < DISPLAY_WIDTH) return;
+
+    auto offset = queue_.GetFirstElementIndex();
+    double data[2];
+
+    constexpr int thick = 1;  // 粗5像素
+
+    for (uint16_t x = 0; x < DISPLAY_WIDTH; ++x) {
+      memcpy(data, queue_[(offset + x) % DISPLAY_WIDTH], sizeof(double) * 2);
+
+      int y0 =
+          DISPLAY_HEIGHT - 1 - (int)(data[0] / 255.0 * (DISPLAY_HEIGHT - 1));
+      int y1 =
+          DISPLAY_HEIGHT - 1 - (int)(data[1] / 255.0 * (DISPLAY_HEIGHT - 1));
+
+      for (int dy = -thick; dy <= thick; ++dy) {
+        int yy0 = y0 + dy;
+        int yy1 = y1 + dy;
+        if (yy0 >= 0 && yy0 < DISPLAY_HEIGHT)
+          chart_buffer_[yy0 * DISPLAY_WIDTH + x] = ST7735::Color::RED;
+        if (yy1 >= 0 && yy1 < DISPLAY_HEIGHT)
+          chart_buffer_[yy1 * DISPLAY_WIDTH + x] = ST7735::Color::GREEN;
+      }
+    }
+  }
+
+  // Bresenham直线
+  void DrawLine(uint16_t *buf, int x0, int y0, int x1, int y1, uint16_t color) {
+    int dx = abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
+    int dy = -abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
+    int err = dx + dy, e2;
+    while (true) {
+      if (x0 >= 0 && x0 < DISPLAY_WIDTH && y0 >= 0 && y0 < DISPLAY_HEIGHT)
+        buf[y0 * DISPLAY_WIDTH + x0] = color;
+      if (x0 == x1 && y0 == y1) break;
+      e2 = 2 * err;
+      if (e2 >= dy) {
+        err += dy;
+        x0 += sx;
+      }
+      if (e2 <= dx) {
+        err += dx;
+        y0 += sy;
       }
     }
   }
 
   void OnMonitor() override {}
 
-private:
+ private:
   static inline SensUS *self_;
   ST7735 *st7735_ = nullptr;
 
@@ -131,6 +225,7 @@ private:
   double det_average_light_ = 0;
 
   uint16_t display_buffer_[DISPLAY_WIDTH * DISPLAY_HEIGHT];
+  uint16_t chart_buffer_[DISPLAY_WIDTH * DISPLAY_HEIGHT];
 
   uint8_t buffer_index_ = false;
 
@@ -138,6 +233,8 @@ private:
       picture_buffer_raw_[2][FRAME_WIDTH * FRAME_HEIGHT];
 
   LibXR::Semaphore frame_ready_;
+
+  LibXR::BaseQueue queue_;
 
   LibXR::Thread thread_;
 
@@ -292,6 +389,5 @@ private:
 extern "C" void HAL_DCMI_FrameEventCallback(DCMI_HandleTypeDef *hdcmi) {
   UNUSED(hdcmi);
 
-  if (dcmi_callback_fun != nullptr)
-    dcmi_callback_fun();
+  if (dcmi_callback_fun != nullptr) dcmi_callback_fun();
 }

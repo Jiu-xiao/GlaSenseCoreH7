@@ -1,6 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
 
-include("cmake/gcc-arm-none-eabi.cmake")
 
 #
 # This file is generated only once,
@@ -23,7 +22,6 @@ endif()
 # Set the project name
 set(PROJECT_NAME GlaSenseCoreH7)
 
-# Include toolchain file
 
 # Enable compile command to ease indexing with e.g. clangd
 set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
@@ -61,6 +59,9 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
     # Add user defined symbols
 )
 
+# Remove wrong libob.a library dependency when using cpp files
+list(REMOVE_ITEM CMAKE_C_IMPLICIT_LINK_LIBRARIES ob)
+
 # Add linked libraries
 target_link_libraries(${PROJECT_NAME}
     stm32cubemx
@@ -90,7 +91,7 @@ function(print_section_sizes TARGET)
   add_custom_command(
     TARGET ${TARGET}
     POST_BUILD
-    COMMAND ${CMAKE_SIZE} ${TARGET})
+    COMMAND ${CMAKE_SIZE} ${TARGET}.elf)
 endfunction()
 
 # Creates output in hex format
@@ -98,7 +99,7 @@ function(create_hex_output TARGET)
   add_custom_target(
     ${TARGET}.hex ALL
     DEPENDS ${TARGET}
-    COMMAND ${CMAKE_OBJCOPY} --output-target ihex ${TARGET} ${TARGET}.hex)
+    COMMAND ${CMAKE_OBJCOPY} --output-target ihex ${TARGET}.elf ${TARGET}.hex)
 endfunction()
 
 # Creates output in binary format
@@ -106,7 +107,7 @@ function(create_bin_output TARGET)
   add_custom_target(
     ${TARGET}.bin ALL
     DEPENDS ${TARGET}
-    COMMAND ${CMAKE_OBJCOPY} --output-target binary --strip-all ${TARGET}
+    COMMAND ${CMAKE_OBJCOPY} --output-target binary --strip-all ${TARGET}.elf
             ${TARGET}.bin)
 endfunction()
 
