@@ -2,5 +2,5 @@
   "device": "STM32H750VBT6",
   "core": "Cortex-M7",
   "order": 0,
-  "toolchain": "GCC"
+  "toolchain": "CLANG"
 }

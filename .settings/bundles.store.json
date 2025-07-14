@@ -15,6 +15,10 @@
     {
       "name": "st-arm-clang",
       "version": "^19.1.6+st.8"
+    },
+    {
+      "name": "stlink-gdbserver",
+      "version": "7.10.0+st.3"
     }
   ]
 }

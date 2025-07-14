@@ -81,6 +81,11 @@ class SensUS : public LibXR::Application {
                        (uint32_t)picture_buffer_raw_[self->buffer_index_],
                        FRAME_WIDTH * FRAME_HEIGHT * 2 / 4);
     bool show_image = false;
+
+    while (self_->queue_.EmptySize() > 0) {
+      double tmp[2] = {0.0, 0.0};
+      self_->queue_.Push(tmp);
+    }
     while (1) {
       if (self->frame_ready_.Wait() == ErrorCode::OK) {
         static auto last_key_press_time = LibXR::Timebase::GetMilliseconds();
